@@ -1,8 +1,18 @@
 from IMU_10D0F import IMU10DOF
+
 from binascii import hexlify
 from binascii import unhexlify
 import serial
 import time
+
+from geopy.geocoders import Nominatim
+from geopy import distance
+import math
+from geopy.distance import lonlat, distance
+
+geolocator = Nominatim(user_agent="flaviobergamini")
+location = geolocator.reverse("-22.256653, -45.697336")
+global serial
 
 def parse_dados(txt):
         txt = txt.decode("utf-8")
@@ -24,18 +34,142 @@ def parse_dados(txt):
 
         return dado
 
+def find_angle(x1, y1, x2, y2):
+    tea = serial.get_tilt_teading()                   # leitura de angulos de relevo na função de angulos em relação ao norte
+    print(tea.decode("utf-8"))
+    if(x1 >= 0 and y1 >= 0 and x2 >= 0 and y2 >= 0):
+
+        if(x1 > x2) and (y1 > y2):
+            aux = x1
+            x1 = x2
+            x2 = aux
+
+            aux = y1
+            y1 = y2
+            y2 = aux
+
+        if(x2-x1) == 0:
+            print("angulo em 0 para o norte")
+            return 0
+        elif (x2 != x1 and (y2-y1) == 0):
+            print("angulo em 90 para o norte")
+            return 90
+        else:
+            if(x1 < x2) and (y1 > y2):
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao leste, com norte em graus: ", (m1*(-1)+ 90))
+                return (m1*(-1)+ 90)
+            else:
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao leste, com norte em graus: ", m1)
+                return m1
+        
+
+    elif(x1 <= 0 and y1 >= 0 and x2 <= 0 and y2 >= 0):
+        if(x1*(-1) > x2*(-1) and y1 > y2):
+            aux = x1
+            x1 = x2
+            x2 = aux
+
+            aux = y1
+            y1 = y2
+            y2 = aux
+            
+        if(x2-x1) == 0:
+            print("angulo em 0 para o norte")
+            return 0
+        elif (x2 != x1 and (y2-y1) == 0):
+            print("angulo em 90 para o norte")
+            return 90
+
+        else:
+            if(x1*(-1) < x2*(-1)) and (y1 > y2):
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao oeste, com norte em graus: ", m1) 
+                return m1
+            else:
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao oeste, com norte em graus: ", (m1*(-1)+ 90)) 
+                return (m1*(-1) + 90)
+
+    elif(x1 <= 0 and y1 <= 0 and x2 <= 0 and y2 <= 0):
+        if(x1*(-1) > x2*(-1) and y1*(-1) > y2*(-1)):
+            aux = x1
+            x1 = x2
+            x2 = aux
+
+            aux = y1
+            y1 = y2
+            y2 = aux
+
+        if(x2-x1) == 0:
+            print("angulo em 0 para o norte")
+            return 0
+        elif (x2 != x1 and (y2-y1) == 0):
+            print("angulo em 90 para o norte")
+            return 90
+
+        else:
+            if(x1*(-1) < x2*(-1) and y1*(-1) > y2*(-1)):
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao oeste, com norte em graus: ", (m1*(-1) + 270))
+                return (m1*(-1) + 270) 
+            else:
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao oeste, com norte em graus: ", (180 + m1)) 
+                return (180 + m1)
+    
+    elif(x1 >= 0 and y1 <= 0 and x2 >= 0 and y2 <= 0):
+        if(x1 > x2 and y1*(-1) > y2*(-1)):
+            aux = x1
+            x1 = x2
+            x2 = aux
+
+            aux = y1
+            y1 = y2
+            y2 = aux
+
+        if(x2-x1) == 0:
+            print("angulo em 0 para o norte")
+            return 0
+        elif (x2 != x1 and (y2-y1) == 0):
+            print("angulo em 90 para o norte")
+            return 90
+            
+        else:
+            if(x1 < x2 and y1*(-1) > y2*(-1)):
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao leste, com norte em graus: ", (180 + m1)) 
+                return (180 + m1)
+            else:
+                m = (y2-y1)/(x2-x1)
+                m1 = (math.atan(m)*180)/math.pi
+                print("reta ao leste, com norte em graus: ", (m1*(-1) + 270))
+                return (m1*(-1) + 270) 
+
+def gps(i):      # coordenadas que futuramente serão lidas por um GPS
+    if(i == 1):
+        return (-22.257672, -45.695628)
+    else:
+        return (-22.257487, -45.695878)
 
 if __name__ == "__main__":
 
     serial = IMU10DOF('/dev/ttyACM0',115200)
-    #serial = serial.Serial('/dev/ttyACM0',115200)
-    print('oiiiii')
+
+    p1 = gps(1)
+    p2 = gps(2)
+    print("Distancia: ",distance(lonlat(*p1), lonlat(*p2)))
+    find_angle(p1[0], p1[1], p2[0], p2[1])
+
     while(True):
-        #serial.write("m")
-        #x = serial.readline()
-        #y = serial.readline()
-        #z = str(hexlify(serial.read()))
-        #print(y)
 
         mag = serial.read_magnetometer()
         parse_dados(mag)
@@ -53,11 +187,3 @@ if __name__ == "__main__":
         print(tea.decode("utf-8"))
         print('----------------------------------------')
         print('************************************************')
-
-        #print(parse_dados(serial.read_magnetometer()))
-        #print('------------------------------------------')
-        #print(parse_dados(serial.read_accelerometer))
-        #print('------------------------------------------')
-        #print(parse_dados(serial.read_gyroscope))
-        #print('------------------------------------------')
-        time.sleep(0.5)
