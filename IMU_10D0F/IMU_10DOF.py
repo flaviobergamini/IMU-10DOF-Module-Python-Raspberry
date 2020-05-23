@@ -72,3 +72,8 @@ class IMU10DOF(object):
                 self.COMserial.flushInput
                 self.COMserial.flushOutput
                 return bytes(0)
+
+        def COM_flush(self):
+            self.COMserial.flushInput
+            self.COMserial.flushOutput
+            self.COMserial.flush

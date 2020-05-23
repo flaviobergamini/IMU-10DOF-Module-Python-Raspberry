@@ -4,15 +4,18 @@ from binascii import hexlify
 from binascii import unhexlify
 import serial
 import time
+import sys
+import math
 
+import glob
+import serial.tools.list_ports
 from geopy.geocoders import Nominatim
 from geopy import distance
-import math
 from geopy.distance import lonlat, distance
 
 geolocator = Nominatim(user_agent="flaviobergamini")
 location = geolocator.reverse("-22.256653, -45.697336")
-global serial
+#global serial
 
 def parse_dados(txt):
         txt = txt.decode("utf-8")
@@ -160,30 +163,63 @@ def gps(i):      # coordenadas que futuramente serão lidas por um GPS
     else:
         return (-22.257487, -45.695878)
 
-if __name__ == "__main__":
+def find_serial():
+    ports = serial.tools.list_ports.comports()
+    if sys.platform.startswith('win'):
+        ports = ['COM%s' % (i + 1) for i in range(256)]
+    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+        ports = glob.glob('/dev/ttyACM[0-9]*')
+    elif sys.platform.startswith('darwin'):
+        ports = glob.glob('/dev/tty.*')
+    else:
+        raise EnvironmentError('Unsupported platform')
 
-    serial = IMU10DOF('/dev/ttyACM0',115200)
+    result = []
+    for port in ports:
+        try:
+            s = serial.Serial(port)
+            s.close()
+            result.append(port)
+        except (OSError, serial.SerialException):
+            pass
+    result = str(result)
+    result = result[2:(int(len(result))-2)]
+    print(result)
+    return result
+
+if __name__ == "__main__":
+    ser = True
+    while(ser == True):
+        try:
+            serial = IMU10DOF(find_serial() ,115200)
+            ser = False
+        except:
+            print('Erro, porta serial não encontrada')
+            time.sleep(0.5)
 
     p1 = gps(1)
     p2 = gps(2)
     print("Distancia: ",distance(lonlat(*p1), lonlat(*p2)))
     find_angle(p1[0], p1[1], p2[0], p2[1])
 
-    while(True):
-
-        mag = serial.read_magnetometer()
-        parse_dados(mag)
-        print('----------------------------------------')
-        acc = serial.read_accelerometer()
-        parse_dados(acc)
-        print('----------------------------------------')
-        gyr = serial.read_gyroscope()
-        parse_dados(gyr)
-        print('----------------------------------------')
-        hea = serial.get_heading()
-        print(hea.decode("utf-8"))
-        print('----------------------------------------')
-        tea = serial.get_tilt_teading()
-        print(tea.decode("utf-8"))
-        print('----------------------------------------')
-        print('************************************************')
+    while(ser == False):
+        try:
+            mag = serial.read_magnetometer()
+            parse_dados(mag)
+            print('----------------------------------------')
+            acc = serial.read_accelerometer()
+            parse_dados(acc)
+            print('----------------------------------------')
+            gyr = serial.read_gyroscope()
+            parse_dados(gyr)
+            print('----------------------------------------')
+            hea = serial.get_heading()
+            print(hea.decode("utf-8"))
+            print('----------------------------------------')
+            tea = serial.get_tilt_teading()
+            print(tea.decode("utf-8"))
+            print('----------------------------------------')
+            print('************************************************')
+        except:
+            print('Erro, porta serial não encontrada')
+            ser = True
