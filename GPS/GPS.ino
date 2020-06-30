@@ -1,17 +1,12 @@
  
 #include <SoftwareSerial.h>
-#include <TinyGPS.h>
+#include <TinyGPS++.h>
 
 #define rxGPS 3 
 #define txGPS 5
 
-TinyGPS gps;
+TinyGPSPlus gps;
 SoftwareSerial serialGPS = SoftwareSerial(rxGPS, txGPS);
-
-//String GPS_String = "";
-
-long lat, lon;
-unsigned long fix_age, time, date, speed, course;
 
 void setup() {
   pinMode(rxGPS, INPUT);
@@ -26,32 +21,14 @@ void loop()
   while (serialGPS.available())
   {
     int recebe = serialGPS.read();
+    
     if(gps.encode(recebe)){
-      gps.get_position(&lat, &lon, &fix_age);
-      Serial.print("Latitude: ");
-      Serial.println(lat);
-      Serial.print("Longitude: ");
-      Serial.println(lon);
-      Serial.println("---------------------------");
-      gps.get_datetime(&date, &time, &fix_age);
-      Serial.print("Data: ");
-      Serial.println(date);
-      Serial.print("Hora: ");
-      Serial.println(time);
-      Serial.println("***************************");
-      Serial.print("ID Satelite: ");
-      Serial.println(gps.satellites());
-      Serial.println("***************************");
+      Serial.print("Latitude: ");  
+      Serial.println(gps.location.lat(), 6);
+      Serial.print("Longitude: "); 
+      Serial.println(gps.location.lng(), 6);
+      Serial.print("Altitude: ");  
+      Serial.println(gps.altitude.meters());
     }
-    /*
-    if (recebe != '\n' && recebe != '\r')
-    {
-      GPS_String  = recebe;
-      Serial.print(GPS_String);
-    }
-    else
-    {
-      Serial.print("\n");
-    } */
   }
 }
